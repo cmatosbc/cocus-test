@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install Deps
+      run: sudo apt install docker docker-compose
     - uses: actions/checkout@v4
     - name: Run Docker Compose
       run: docker-compose up --build
