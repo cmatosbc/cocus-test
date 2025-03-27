@@ -1,26 +1,48 @@
 // any CSS you import will output into a single css file (app.css in this case)
 import './styles/app.css';
-
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
-import axios from 'axios';
 import App from './components/App.vue';
-import LoginForm from './components/LoginForm.vue';
-import RegisterForm from './components/RegisterForm.vue';
+import axios from 'axios';
 
 // Configure axios defaults
-axios.defaults.baseURL = '/api';
+axios.defaults.baseURL = '';
 
 // Set up token if it exists
 const token = localStorage.getItem('token');
 if (token) {
-  const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-  axios.defaults.headers.common['Authorization'] = bearerToken;
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
+
+// Add a request interceptor to automatically add the JWT token
+axios.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle unauthorized responses
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      router.push('/login');
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Create router
 const router = createRouter({
-  history: createWebHistory('/'),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
@@ -28,19 +50,14 @@ const router = createRouter({
     },
     {
       path: '/login',
-      name: 'login',
-      component: LoginForm,
-      meta: { requiresAuth: false, redirectIfAuth: true }
+      component: () => import('./components/LoginForm.vue')
     },
     {
       path: '/register',
-      name: 'register',
-      component: RegisterForm,
-      meta: { requiresAuth: false, redirectIfAuth: true }
+      component: () => import('./components/RegisterForm.vue')
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
       component: () => import('./components/Dashboard.vue'),
       meta: { requiresAuth: true }
     }
@@ -50,28 +67,15 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
-  const isAuthenticated = !!token;
-
-  // If route requires auth and user is not authenticated
-  if (to.meta.requiresAuth && !isAuthenticated) {
+  if (to.meta.requiresAuth && !token) {
     next('/login');
-    return;
-  }
-
-  // If user is authenticated and tries to access login/register
-  if (to.meta.redirectIfAuth && isAuthenticated) {
+  } else if ((to.path === '/login' || to.path === '/register') && token) {
     next('/dashboard');
-    return;
+  } else {
+    next();
   }
-
-  next();
 });
 
-// Create Vue app
 const app = createApp(App);
-
-// Add router
 app.use(router);
-
-// Mount app
 app.mount('#app');

@@ -82,25 +82,17 @@ export default {
       isLoading.value = true
 
       try {
-        const response = await axios.post('/register', {
+        const response = await axios.post('/api/register', {
           name: name.value,
           email: email.value,
           password: password.value
-        }, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
+        });
 
-        // Store the token
-        localStorage.setItem('token', response.data.token)
+        // Store token and set axios default header
+        localStorage.setItem('token', response.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         
-        // Set default Authorization header with Bearer prefix
-        const bearerToken = `Bearer ${response.data.token}`
-        axios.defaults.headers.common['Authorization'] = bearerToken
-
-        // Redirect to dashboard
-        router.push('/dashboard')
+        router.push('/dashboard');
       } catch (err) {
         if (err.response?.data?.errors) {
           error.value = Array.isArray(err.response.data.errors) 

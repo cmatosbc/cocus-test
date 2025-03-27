@@ -24,12 +24,12 @@ security:
         api:
             pattern: ^/api
             stateless: true
-            jwt: ~
+            provider: app_user_provider
+            jwt: 
+                authenticator: lexik_jwt_authentication.security.jwt_authenticator
         main:
             lazy: true
             provider: app_user_provider
-            logout:
-                path: app_logout
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
