@@ -33,6 +33,12 @@ class SecurityController extends AbstractController
             return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Check if email already exists
+        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        if ($existingUser) {
+            return new JsonResponse(['error' => 'Email already exists'], Response::HTTP_CONFLICT);
+        }
+
         $user = new User();
         $user->setEmail($data['email']);
         $user->setName($data['name']);
@@ -49,12 +55,8 @@ class SecurityController extends AbstractController
             return new JsonResponse(['errors' => $errorMessages], Response::HTTP_BAD_REQUEST);
         }
 
-        try {
-            $this->entityManager->persist($user);
-            $this->entityManager->flush();
-        } catch (\Exception $e) {
-            return new JsonResponse(['error' => 'Email already exists'], Response::HTTP_CONFLICT);
-        }
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
 
         $token = $this->jwtManager->create($user);
 
@@ -65,11 +67,26 @@ class SecurityController extends AbstractController
     }
 
     #[Route('/login', name: 'app_login', methods: ['POST'])]
-    public function login(): JsonResponse
+    public function login(Request $request): JsonResponse
     {
-        // This method will never be executed as the JSON login authenticator
-        // will intercept the request
-        throw new \RuntimeException('You must configure the check_path to be handled by the firewall');
+        $data = json_decode($request->getContent(), true);
+
+        if (!$data || !isset($data['email']) || !isset($data['password'])) {
+            return new JsonResponse(['error' => 'Missing credentials'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+
+        if (!$user || !$this->passwordHasher->isPasswordValid($user, $data['password'])) {
+            return new JsonResponse(['error' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $token = $this->jwtManager->create($user);
+
+        return new JsonResponse([
+            'message' => 'Login successful',
+            'token' => $token
+        ]);
     }
 
     #[Route('/logout', name: 'app_logout', methods: ['POST'])]
