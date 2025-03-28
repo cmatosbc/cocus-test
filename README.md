@@ -1,31 +1,26 @@
-# Cocus Symfony Project
+# Full Stack Notes Application
 
-A modern web application built with:
-- Symfony 6 (PHP Backend)
-- Vue.js (JavaScript Frontend)
-- Python Flask API
-- PostgreSQL Database
-- JWT Authentication
+A modern note-taking application built with Symfony 6, Vue.js, Python Flask API, and PostgreSQL, all containerized with Docker.
 
-## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [First Time Setup](#first-time-setup)
-3. [Daily Development](#daily-development)
-4. [Working with Individual Components](#working-with-individual-components)
-5. [Troubleshooting](#troubleshooting)
+## System Requirements
 
-## Prerequisites
+- Docker Engine 24.0+
+- Docker Compose 2.0+
+- Git
 
-You only need to install these tools once on your computer:
+## Project Structure
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) - Run the application in containers
-- [Git](https://git-scm.com/downloads) - Download and manage the code
+```
+cocus-symfony/
+├── API/                    # Python Flask API
+├── assets/                 # Vue.js frontend
+├── src/                    # Symfony backend
+├── docker/                 # Docker configuration files
+├── docker-compose.yml      # Docker services configuration
+└── ...
+```
 
-For Windows users:
-- Use WSL2 (Windows Subsystem for Linux) for better performance
-- Install Docker Desktop with WSL2 backend
-
-## First Time Setup
+## Quick Start
 
 1. Clone the repository:
    ```bash
@@ -33,154 +28,133 @@ For Windows users:
    cd cocus-test
    ```
 
-2. Copy environment files:
+2. Build and start the containers:
    ```bash
-   cp .env.example .env
-   cp API/.env.example API/.env
+   docker-compose up --build -d
    ```
 
-3. Build and start all containers:
+3. Install PHP dependencies:
    ```bash
-   docker-compose up -d --build
+   docker-compose exec php composer install
    ```
 
-4. Install frontend dependencies:
+4. Run database migrations:
    ```bash
-   npm install
+   docker-compose exec php bin/console doctrine:migrations:migrate --no-interaction
    ```
 
-5. Build frontend assets:
+5. Install frontend dependencies and build assets:
    ```bash
-   npm run docker-build
+   docker-compose exec php yarn install
+   docker-compose exec php yarn build
    ```
 
-The application should now be running at:
-- Frontend: http://localhost:8080
-- Symfony API: http://localhost:8080/api
-- Python API: http://localhost:5000/python_api
+## Accessing the Applications
 
-## Daily Development
+- **Frontend (Symfony + Vue)**: http://localhost:8080
+- **Python API**: http://localhost:5000
+- **PostgreSQL Database**: localhost:5432 (internal access via `database` hostname)
 
-### Starting the Application
-```bash
-docker-compose up -d
-```
+## Service Details
 
-### Stopping the Application
-```bash
-docker-compose down
-```
-
-### Viewing Logs
-```bash
-# All containers
-docker-compose logs -f
-
-# Specific container
-docker-compose logs -f php    # PHP/Symfony logs
-docker-compose logs -f nginx  # Web server logs
-docker-compose logs -f node   # Frontend build logs
-docker-compose logs -f python_api  # Python API logs
-```
-
-## Working with Individual Components
-
-### Frontend (Vue.js)
-1. Make changes to files in `assets/` directory
-2. Rebuild frontend:
-   ```bash
-   npm run docker-build
-   ```
-
-### Symfony Backend
-1. Install new dependencies:
-   ```bash
-   docker-compose exec php composer require package-name
-   ```
-
-2. Create database migrations:
-   ```bash
-   docker-compose exec php bin/console make:migration
-   docker-compose exec php bin/console doctrine:migrations:migrate
-   ```
-
-3. Clear cache:
-   ```bash
-   docker-compose exec php bin/console cache:clear
-   ```
+### Symfony Application (PHP)
+- Framework: Symfony 6
+- Frontend: Vue.js
+- Port: 8080
+- Environment variables in `.env`
 
 ### Python API
-1. Install new Python packages:
-   ```bash
-   # Add package to API/requirements.txt
-   docker-compose up -d --build python_api
-   ```
+- Framework: Flask
+- Port: 5000
+- Environment variables in `API/.env`
 
-2. Restart after code changes:
-   ```bash
-   docker-compose restart python_api
-   ```
+### PostgreSQL Database
+- Version: 16
+- Default credentials:
+  - Database: app
+  - Username: postgres
+  - Password: postgres
+- Port: 5432
 
-### Database
-1. Access PostgreSQL:
-   ```bash
-   docker-compose exec database psql -U app -d app
-   ```
+## Docker Services
 
-2. Reset Database:
-   ```bash
-   docker-compose down
-   docker volume rm cocus-symfony_database_data
-   docker-compose up -d
-   ```
+1. **php**: PHP-FPM service running Symfony
+2. **nginx**: Web server for Symfony application
+3. **database**: PostgreSQL database
+4. **python_api**: Flask API service
+
+## Development
+
+### File Permissions
+The application uses proper file permissions with:
+- Non-root users in containers
+- Proper volume mounts
+- Write permissions for cache and logs
+
+### Hot Reloading
+- Symfony changes are immediately reflected
+- Vue.js components hot reload automatically
+- Python API has auto-reload enabled
+
+### Database Management
+- Access PostgreSQL:
+  ```bash
+  docker-compose exec database psql -U postgres -d app
+  ```
+- Create new migrations:
+  ```bash
+  docker-compose exec php bin/console doctrine:migrations:diff
+  ```
 
 ## Troubleshooting
 
-### Container Issues
-1. If containers aren't starting:
-   ```bash
-   # Stop all containers
-   docker-compose down
-
-   # Remove all containers and volumes
-   docker-compose down -v
-
-   # Rebuild everything
-   docker-compose up -d --build
-   ```
-
-2. If frontend changes aren't showing:
-   ```bash
-   npm run docker-build
-   ```
-
-3. If Symfony gives permission errors:
+1. **Permission Issues**
    ```bash
    docker-compose exec php chown -R www-data:www-data var/
    ```
 
-### Common Error Messages
+2. **Database Connection Issues**
+   - Check if database is running:
+     ```bash
+     docker-compose ps database
+     ```
+   - Verify credentials in `.env` and `API/.env`
 
-1. "Connection refused" to database:
-   - Wait 30 seconds after starting containers
-   - Database might still be initializing
-
-2. "No such file or directory" in Symfony:
+3. **Cache Issues**
    ```bash
-   docker-compose exec php composer install
    docker-compose exec php bin/console cache:clear
    ```
 
-3. "Invalid date format" in notes:
-   - Clear browser cache
-   - Rebuild frontend with `npm run docker-build`
+## API Documentation
 
-### Getting Help
-If you encounter any issues not covered here:
-1. Check the container logs (see "Viewing Logs" section)
-2. Ensure all containers are running: `docker-compose ps`
-3. Contact the development team
+### Symfony Endpoints
+- `POST /api/register`: User registration
+- `POST /api/login`: User authentication
+- `GET /api/notes`: List user's notes
+- `POST /api/notes`: Create new note
+- `PUT /api/notes/{id}`: Update note
+- `DELETE /api/notes/{id}`: Delete note
+
+### Python API Endpoints
+- `GET /health`: API health check
+- Additional endpoints documented in `API/app.py`
+
+## Security
+
+- CORS properly configured
+- PostgreSQL credentials secured
+- Non-root users in containers
+- Proper file permissions
+- Environment-specific configurations
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is proprietary and confidential. 2025 Cocus
+This project is licensed under the MIT License.
