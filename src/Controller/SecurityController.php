@@ -10,89 +10,103 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
-#[Route('/api')]
 class SecurityController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
-        private ValidatorInterface $validator,
-        private JWTTokenManagerInterface $jwtManager
+        private UserPasswordHasherInterface $passwordHasher
     ) {
     }
 
-    #[Route('/register', name: 'app_register', methods: ['POST'])]
-    public function register(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        if (!$data || !isset($data['email']) || !isset($data['password']) || !isset($data['name'])) {
-            return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
-        }
-
-        // Check if email already exists
-        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
-        if ($existingUser) {
-            return new JsonResponse(['error' => 'Email already exists'], Response::HTTP_CONFLICT);
-        }
-
-        $user = new User();
-        $user->setEmail($data['email']);
-        $user->setName($data['name']);
-        $user->setPassword(
-            $this->passwordHasher->hashPassword($user, $data['password'])
-        );
-
-        $errors = $this->validator->validate($user);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[] = $error->getMessage();
-            }
-            return new JsonResponse(['errors' => $errorMessages], Response::HTTP_BAD_REQUEST);
-        }
-
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        $token = $this->jwtManager->create($user);
-
-        return new JsonResponse([
-            'message' => 'User registered successfully',
-            'token' => $token
-        ], Response::HTTP_CREATED);
-    }
-
-    #[Route('/login', name: 'app_login', methods: ['POST'])]
+    #[Route('/api/login', name: 'app_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!$data || !isset($data['email']) || !isset($data['password'])) {
-            return new JsonResponse(['error' => 'Missing credentials'], Response::HTTP_BAD_REQUEST);
+        if (!isset($data['email']) || !isset($data['password'])) {
+            return $this->json([
+                'message' => 'Missing credentials'
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
 
         if (!$user || !$this->passwordHasher->isPasswordValid($user, $data['password'])) {
-            return new JsonResponse(['error' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'message' => 'Invalid credentials'
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $token = $this->jwtManager->create($user);
-
-        return new JsonResponse([
-            'message' => 'Login successful',
-            'token' => $token
+        return $this->json([
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'name' => $user->getName(),
+            ]
         ]);
     }
 
-    #[Route('/logout', name: 'app_logout', methods: ['POST'])]
+    #[Route('/api/register', name: 'app_register', methods: ['POST'])]
+    public function register(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['email']) || !isset($data['password']) || !isset($data['name'])) {
+            return $this->json([
+                'message' => 'Missing required fields'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        if ($existingUser) {
+            return $this->json([
+                'message' => 'User already exists'
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $user = new User();
+        $user->setEmail($data['email']);
+        $user->setName($data['name']);
+        $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'message' => 'User registered successfully',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'name' => $user->getName(),
+            ]
+        ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/logout', name: 'app_logout', methods: ['POST'])]
     public function logout(): void
     {
-        // This method will be intercepted by the logout key on the firewall
-        throw new \RuntimeException('You must activate the logout in your security firewall configuration');
+        // Controller can be empty - it will be intercepted by the logout key on the firewall
+    }
+
+    #[Route('/api/me', name: 'app_me', methods: ['GET'])]
+    public function me(): JsonResponse
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json([
+                'message' => 'Not authenticated'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->json([
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'name' => $user->getName(),
+            ]
+        ]);
     }
 }

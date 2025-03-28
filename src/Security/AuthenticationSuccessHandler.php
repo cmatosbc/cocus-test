@@ -2,44 +2,30 @@
 
 namespace App\Security;
 
-use App\Entity\RefreshToken;
-use App\Repository\RefreshTokenRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
-use Lexik\Bundle\JWTAuthenticationBundle\Events;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use App\Entity\User;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerInterface;
 
-class AuthenticationSuccessHandler implements EventSubscriberInterface
+class AuthenticationSuccessHandler implements AuthenticationSuccessHandlerInterface
 {
-    public function __construct(
-        private EntityManagerInterface $entityManager,
-        private RefreshTokenRepository $refreshTokenRepository
-    ) {
-    }
-
-    public static function getSubscribedEvents(): array
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token): Response
     {
-        return [
-            Events::AUTHENTICATION_SUCCESS => 'onAuthenticationSuccess',
-        ];
-    }
+        $user = $token->getUser();
 
-    public function onAuthenticationSuccess(AuthenticationSuccessEvent $event): void
-    {
-        $data = $event->getData();
-        $user = $event->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'Invalid user type'], Response::HTTP_BAD_REQUEST);
+        }
 
-        // Generate refresh token
-        $refreshToken = new RefreshToken();
-        $refreshToken->setUser($user);
-        $refreshToken->setToken(bin2hex(random_bytes(32)));
-        $refreshToken->setExpiresAt(new \DateTimeImmutable('+30 days'));
-
-        $this->entityManager->persist($refreshToken);
-        $this->entityManager->flush();
-
-        // Add refresh token to response
-        $data['refresh_token'] = $refreshToken->getToken();
-        $event->setData($data);
+        return new JsonResponse([
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'name' => $user->getName(),
+            ],
+            'message' => 'Authentication successful'
+        ]);
     }
 }

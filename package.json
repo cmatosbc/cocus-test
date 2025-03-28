@@ -27,7 +27,16 @@
         "watch": "encore dev --watch",
         "build": "encore production --progress",
         "docker-build": "encore production --progress && docker-compose down && docker-compose up -d --build",
-        "docker-dbdump": "mkdir -p DB && touch DB/.counter && echo $(($(cat DB/.counter 2>/dev/null || echo 0) + 1)) > DB/.counter && docker-compose exec database pg_dump -U app app > DB/dbdump_$(cat DB/.counter).sql"
+        "docker-dbdump": "mkdir -p DB && touch DB/.counter && echo $(($(cat DB/.counter 2>/dev/null || echo 0) + 1)) > DB/.counter && docker-compose exec database pg_dump -U app app > DB/dbdump_$(cat DB/.counter).sql",
+        "docker-down": "docker-compose down",
+        "docker-dev": "APP_ENV=dev docker-compose up -d",
+        "docker-prod": "APP_ENV=prod docker-compose up -d",
+        "docker-test": "APP_ENV=test docker-compose up -d",
+        "docker-logs": "docker-compose logs -f",
+        "docker-logs-php": "docker-compose logs -f php",
+        "docker-logs-nginx": "docker-compose logs -f nginx",
+        "docker-logs-node": "docker-compose logs -f node",
+        "docker-logs-python_api": "docker-compose logs -f python_api"
     },
     "dependencies": {
         "axios": "^1.8.4",
