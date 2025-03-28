@@ -45,8 +45,8 @@ cocus-symfony/
 
 5. Install frontend dependencies and build assets:
    ```bash
-   docker-compose exec php yarn install
-   docker-compose exec php yarn build
+   docker-compose exec php npm install
+   docker-compose exec php npm run build
    ```
 
 ## Accessing the Applications
@@ -105,6 +105,85 @@ The application uses proper file permissions with:
   ```bash
   docker-compose exec php bin/console doctrine:migrations:diff
   ```
+
+## Using the Application
+
+### User Authentication
+
+1. **Registration**:
+   - Visit http://localhost:8080/register
+   - Fill in the registration form with:
+     - Name
+     - Email
+     - Password
+   - Submit the form to create your account
+
+2. **Login**:
+   - Visit http://localhost:8080/login
+   - Enter your email and password
+   - Upon successful login, you'll receive a session cookie
+   - You'll be redirected to the dashboard
+
+### Dashboard
+
+The dashboard at http://localhost:8080/dashboard provides access to:
+- Note management (create, read, update, delete)
+- User profile information
+- Logout functionality
+
+### API Access
+
+#### Symfony API Endpoints (Authentication Required)
+
+All requests require a valid session cookie obtained after login.
+
+1. **Notes Management**:
+   ```bash
+   # List all notes
+   curl -X GET http://localhost:8080/api/notes -H "Cookie: <your-session-cookie>"
+
+   # Create a note
+   curl -X POST http://localhost:8080/api/notes \
+     -H "Cookie: <your-session-cookie>" \
+     -H "Content-Type: application/json" \
+     -d '{"title":"My Note","message":"Content","type":0}'
+
+   # Update a note
+   curl -X PUT http://localhost:8080/api/notes/{id} \
+     -H "Cookie: <your-session-cookie>" \
+     -H "Content-Type: application/json" \
+     -d '{"title":"Updated Note","message":"New Content","type":1}'
+
+   # Delete a note
+   curl -X DELETE http://localhost:8080/api/notes/{id} \
+     -H "Cookie: <your-session-cookie>"
+   ```
+
+2. **Authentication**:
+   ```bash
+   # Register
+   curl -X POST http://localhost:8080/api/register \
+     -H "Content-Type: application/json" \
+     -d '{"name":"User","email":"user@example.com","password":"password123"}'
+
+   # Login
+   curl -X POST http://localhost:8080/api/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"user@example.com","password":"password123"}'
+   ```
+
+#### Python API Endpoints
+
+The Python API provides additional functionality:
+- Health check: `GET http://localhost:5000/health`
+- Additional endpoints as documented in `API/app.py`
+
+### Note Types
+
+Notes can be categorized with different types:
+- Type 0: Personal
+- Type 1: Work
+- Type 2: Shopping
 
 ## Troubleshooting
 
