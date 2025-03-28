@@ -65,11 +65,12 @@ class NoteController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!$data || !isset($data['message']) || !isset($data['type'])) {
+        if (!$data || !isset($data['title']) || !isset($data['message']) || !isset($data['type'])) {
             return $this->json(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
 
         $note = new Note();
+        $note->setTitle($data['title']);
         $note->setMessage($data['message']);
         $note->setType($data['type']);
         $note->setUser($this->getUser());
@@ -99,12 +100,13 @@ class NoteController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if (isset($data['message'])) {
-            $note->setMessage($data['message']);
+        if (!$data || !isset($data['title']) || !isset($data['message']) || !isset($data['type'])) {
+            return $this->json(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
-        if (isset($data['type'])) {
-            $note->setType($data['type']);
-        }
+
+        $note->setTitle($data['title']);
+        $note->setMessage($data['message']);
+        $note->setType($data['type']);
 
         $errors = $this->validator->validate($note);
         if (count($errors) > 0) {

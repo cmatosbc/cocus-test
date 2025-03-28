@@ -15,22 +15,26 @@
       {{ error }}
     </div>
 
-    <div v-else class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-xl font-semibold mb-4">Profile Information</h2>
-      <div class="space-y-4">
-        <div class="flex">
-          <span class="font-medium w-24">Name:</span>
-          <span>{{ profile.name }}</span>
-        </div>
-        <div class="flex">
-          <span class="font-medium w-24">Email:</span>
-          <span>{{ profile.email }}</span>
-        </div>
-        <div class="flex">
-          <span class="font-medium w-24">Role:</span>
-          <span>{{ profile.roles.join(', ') }}</span>
+    <div v-else>
+      <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Profile Information</h2>
+        <div class="space-y-4">
+          <div class="flex">
+            <span class="font-medium w-24">Name:</span>
+            <span>{{ profile.name }}</span>
+          </div>
+          <div class="flex">
+            <span class="font-medium w-24">Email:</span>
+            <span>{{ profile.email }}</span>
+          </div>
+          <div class="flex">
+            <span class="font-medium w-24">Role:</span>
+            <span>{{ profile.roles.join(', ') }}</span>
+          </div>
         </div>
       </div>
+
+      <NoteManager />
     </div>
   </div>
 </template>
@@ -39,9 +43,13 @@
 import axios from 'axios';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import NoteManager from './NoteManager.vue';
 
 export default {
   name: 'Dashboard',
+  components: {
+    NoteManager
+  },
   setup() {
     const router = useRouter();
     const profile = ref(null);

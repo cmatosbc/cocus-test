@@ -28,13 +28,46 @@ axios.interceptors.request.use(
   }
 );
 
-// Handle unauthorized responses
+// Handle unauthorized responses and token refresh
 axios.interceptors.response.use(
   response => response,
-  error => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      router.push('/login');
+  async error => {
+    const originalRequest = error.config;
+
+    // If error is 401 and we haven't tried to refresh the token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Try to refresh the token
+        const response = await axios.post('/api/token/refresh', {
+          refresh_token: refreshToken
+        });
+
+        const { token, refresh_token } = response.data;
+        
+        // Store new tokens
+        localStorage.setItem('token', token);
+        localStorage.setItem('refresh_token', refresh_token);
+        
+        // Update axios headers
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        
+        // Retry the original request
+        return axios(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, logout user
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        router.push('/login');
+        return Promise.reject(refreshError);
+      }
     }
     return Promise.reject(error);
   }
