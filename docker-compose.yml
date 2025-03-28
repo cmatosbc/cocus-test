@@ -31,6 +31,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - database_data:/var/lib/postgresql/data:rw
+    ports:
+      - "5432:5432"
 
   python_api:
     build:
@@ -41,7 +43,8 @@ services:
     volumes:
       - ./API:/app:rw
     environment:
-      FLASK_ENV: production
+      FLASK_ENV: development
+      FLASK_DEBUG: 1
       DATABASE_URL: "postgresql://postgres:postgres@database:5432/app"
     depends_on:
       - database
