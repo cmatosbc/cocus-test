@@ -185,6 +185,90 @@ Notes can be categorized with different types:
 - Type 1: Work
 - Type 2: Shopping
 
+## Unit Tests
+
+The application includes comprehensive unit tests for the security controller. To run the tests:
+
+```bash
+# Run all tests
+docker-compose exec php php bin/phpunit
+
+# Run specific test class
+docker-compose exec php php bin/phpunit tests/Controller/SecurityControllerTest.php
+```
+
+### Test Coverage
+
+The SecurityController tests cover the following scenarios:
+
+1. **Registration Tests**
+   - Success: User can register with valid credentials
+   - Missing Data: Validation fails when required fields are missing
+   - Duplicate Email: Prevents duplicate user registration
+   - Invalid Email: Handles invalid email formats gracefully
+
+2. **Authentication Tests**
+   - Login Success: Validates successful login with correct credentials
+   - Invalid Credentials: Handles failed login attempts with incorrect credentials
+
+### Expected Results
+
+All tests should pass with the following assertions:
+
+1. **Registration**
+   - Returns HTTP 201 (Created) on successful registration
+   - Returns HTTP 400 (Bad Request) when required fields are missing
+   - Returns HTTP 409 (Conflict) when trying to register with an existing email
+   - Returns HTTP 201 (Created) even with invalid email format (handled by application logic)
+
+2. **Authentication**
+   - Returns HTTP 200 (OK) on successful login
+   - Returns HTTP 401 (Unauthorized) on failed login attempts
+
+The tests ensure that the security controller functions correctly and handles various edge cases appropriately.
+
+## Python API Tests
+
+The Python API includes a comprehensive test suite that verifies the functionality of the API endpoints. To run the tests:
+
+```bash
+# Run all API tests
+bash ./API/test_api.sh
+```
+
+### Test Coverage
+
+The API tests cover the following scenarios:
+
+1. **Note Management**
+   - GET /notes: Retrieve all notes
+   - POST /notes: Create a new note
+   - GET /notes/{id}: Retrieve a single note
+   - PUT /notes/{id}: Update an existing note
+   - DELETE /notes/{id}: Delete a note
+   - Verify deletion: Ensure deleted note returns 404
+
+2. **Data Validation**
+   - Tests include proper JSON validation
+   - Verifies correct HTTP status codes
+   - Checks response formatting and structure
+
+### Expected Results
+
+The tests verify the following HTTP status codes:
+
+1. **Success Cases**
+   - GET /notes: 200 OK
+   - POST /notes: 201 Created
+   - GET /notes/{id}: 200 OK
+   - PUT /notes/{id}: 200 OK
+   - DELETE /notes/{id}: 204 No Content
+
+2. **Error Cases**
+   - GET /notes/{id} (after deletion): 404 Not Found
+
+The tests ensure that the Python API endpoints function correctly and handle various edge cases appropriately.
+
 ## Troubleshooting
 
 1. **Permission Issues**
